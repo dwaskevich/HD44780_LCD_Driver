@@ -220,14 +220,16 @@ static void LCD_WrDatNib(uint8_t nibble)
 	uint16_t gpioPortData;
 
     /* RS should be high to select data register */
-	HAL_GPIO_WritePin(RS_djjw_GPIO_Port, RS_djjw_Pin, 1);
+	LL_GPIO_SetOutputPin(RS_GPIO_Port, RS_Pin);
+//	HAL_GPIO_WritePin(RS_djjw_GPIO_Port, RS_djjw_Pin, 1);
 //    LCD_PORT_DR_REG |= LCD_RS;
     /* Reset RW for write operation */
-	HAL_GPIO_WritePin(RnW_djjw_GPIO_Port, RnW_djjw_Pin, 0);
+	LL_GPIO_ResetOutputPin(RnW_GPIO_Port, RnW_Pin);
+//	HAL_GPIO_WritePin(RnW_djjw_GPIO_Port, RnW_djjw_Pin, 0);
 //    LCD_PORT_DR_REG &= ((uint8_t)(~LCD_RW));
 
     /* Guaranteed delay between Setting RS and RW and setting E bits */
-    delay_us(1u);
+    delay_us(2u);
 
     /* Clear data pins, write nibble data */
 //    LCD_PORT_DR_REG &= ((uint8_t)(~LCD_DATA_MASK));
@@ -237,7 +239,8 @@ static void LCD_WrDatNib(uint8_t nibble)
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
     /* , bring E high */
-	HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 1);
+	LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
+//	HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 1);
 //    #if(0u != LCD_PORT_SHIFT) /* MISRA forbids shift by 0 so need to handle that */
 //        LCD_PORT_DR_REG |=
 //            (LCD_E | ((uint8_t)(((uint8_t) nibble) << LCD_PORT_SHIFT)));
@@ -250,7 +253,8 @@ static void LCD_WrDatNib(uint8_t nibble)
 
 	/* , bring E low */
 //    LCD_PORT_DR_REG &= ((uint8_t)(~LCD_E));
-    HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 0);
+	LL_GPIO_ResetOutputPin(E_GPIO_Port, E_Pin);
+//    HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 0);
 }
 
 
@@ -274,8 +278,10 @@ static void LCD_WrCntrlNib(uint8_t nibble)
 
     /* RS and RW should be low to select instruction register and write operation respectively */
 //    LCD_PORT_DR_REG &= ((uint8_t)(~(LCD_RS | LCD_RW)));
-    HAL_GPIO_WritePin(RS_djjw_GPIO_Port, RS_djjw_Pin, 0);
-    HAL_GPIO_WritePin(RnW_djjw_GPIO_Port, RnW_djjw_Pin, 0);
+	LL_GPIO_ResetOutputPin(RS_GPIO_Port, RS_Pin);
+//    HAL_GPIO_WritePin(RS_djjw_GPIO_Port, RS_djjw_Pin, 0);
+	LL_GPIO_ResetOutputPin(RnW_GPIO_Port, RnW_Pin);
+//    HAL_GPIO_WritePin(RnW_djjw_GPIO_Port, RnW_djjw_Pin, 0);
 
     /* Two following lines of code will give 40ns delay */
     /* Clear data pins */
@@ -286,7 +292,8 @@ static void LCD_WrCntrlNib(uint8_t nibble)
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
     /* Write control data and set enable signal */
-	HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 1);
+	LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
+//	HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 1);
 //    #if(0u != LCD_PORT_SHIFT) /* MISRA forbids shift by 0 so need to handle that */
 //        LCD_PORT_DR_REG |=
 //            (LCD_E | ((uint8_t)(((uint8_t) nibble) << LCD_PORT_SHIFT)));
@@ -299,7 +306,8 @@ static void LCD_WrCntrlNib(uint8_t nibble)
     delay_us(1u);
 
 //    LCD_PORT_DR_REG &= ((uint8_t)(~LCD_E));
-    HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 0);
+    LL_GPIO_ResetOutputPin(E_GPIO_Port, E_Pin);
+//    HAL_GPIO_WritePin(E_djjw_GPIO_Port, E_djjw_Pin, 0);
 }
 
 /*******************************************************************************

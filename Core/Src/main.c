@@ -96,37 +96,15 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  uint16_t gpioPortData;
-  HAL_TIM_Base_Start(&htim4);
-  HAL_GPIO_WritePin(Light_LCD_GPIO_Port, Light_LCD_Pin, 1);
-//  HAL_GPIO_WritePin(RS_djjw_GPIO_Port, RS_djjw_Pin, 0);
-//  HAL_GPIO_WritePin(RnW_djjw_GPIO_Port, RnW_djjw_Pin, 1);
-  gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
-  gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
-  gpioPortData |= (uint16_t) (0x0a & LCD_NIBBLE_MASK);
-  LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
-  /* Write control data and set enable signal */
-  HAL_GPIO_WritePin(GPIOC_BASE, GPIO_PIN_12, 1);
-  HAL_Delay(20);
-  HAL_GPIO_WritePin(test_GPIO_Port, test_Pin, 0);
-
-
-
-  while(1)
-  {
-	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-	  HAL_GPIO_TogglePin(test_GPIO_Port, test_Pin);
-	  HAL_Delay(500);
-
-  }
-
 
   HAL_TIM_Base_Start(&htim4);
-  HAL_GPIO_WritePin(Light_LCD_GPIO_Port, Light_LCD_Pin, 1);
+  LL_GPIO_SetOutputPin(Light_LCD_GPIO_Port, Light_LCD_Pin);
   LCD_Start();
   HAL_Delay(20);
   LCD_Position(0, 0);
   LCD_PrintString("hello world");
+  LCD_Position(1, 0);
+  LCD_PrintString("ok, wow, working");
 
   /* USER CODE END 2 */
 
@@ -134,7 +112,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+	  LL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
@@ -246,7 +224,7 @@ static void MX_GPIO_Init(void)
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOC, DB4_Pin|DB5_Pin|DB6_Pin|DB7_Pin
-                          |LL_GPIO_PIN_12);
+                          |RS_Pin);
 
   /**/
   LL_GPIO_ResetOutputPin(Light_LCD_GPIO_Port, Light_LCD_Pin);
@@ -255,8 +233,11 @@ static void MX_GPIO_Init(void)
   LL_GPIO_SetOutputPin(LED1_GPIO_Port, LED1_Pin);
 
   /**/
+  LL_GPIO_SetOutputPin(GPIOC, RnW_Pin|E_Pin);
+
+  /**/
   GPIO_InitStruct.Pin = DB4_Pin|DB5_Pin|DB6_Pin|DB7_Pin
-                          |LL_GPIO_PIN_12;
+                          |RS_Pin|RnW_Pin|E_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -283,9 +264,12 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void delay_us(uint16_t delay)
 {
-	if(delay < 1)
+	if(delay <= 1)
 		delay = 1;
-	else delay = (delay - 1) * 4;
+	else if(delay > 0x10000 / 4)
+		delay = 0x10000 - 1;
+	else
+		delay = (delay * 4) - 1;
 	__HAL_TIM_SetCounter(&htim4, 0);
 	while(__HAL_TIM_GetCounter(&htim4) < delay);
 }

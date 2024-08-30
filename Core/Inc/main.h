@@ -78,6 +78,12 @@ extern void delay_us(uint16_t delay);
 #define LED1_GPIO_Port GPIOA
 #define Light_LCD_Pin LL_GPIO_PIN_0
 #define Light_LCD_GPIO_Port GPIOB
+#define RS_Pin LL_GPIO_PIN_8
+#define RS_GPIO_Port GPIOC
+#define RnW_Pin LL_GPIO_PIN_9
+#define RnW_GPIO_Port GPIOC
+#define E_Pin LL_GPIO_PIN_12
+#define E_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
