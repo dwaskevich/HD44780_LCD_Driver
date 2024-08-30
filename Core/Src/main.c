@@ -44,11 +44,6 @@
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-enum registerSelect
-{
-	COMMAND,
-	DATA
-};
 
 /* USER CODE END PV */
 
@@ -98,7 +93,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_Base_Start(&htim4);
+
   LL_GPIO_SetOutputPin(Light_LCD_GPIO_Port, Light_LCD_Pin);
+
   LCD_Start();
   HAL_Delay(20);
   LCD_Position(0, 0);
@@ -264,8 +261,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void delay_us(uint16_t delay)
 {
-	if(delay <= 1)
-		delay = 1;
+	if(delay < 1)
+		delay = 0;
 	else if(delay > 0x10000 / 4)
 		delay = 0x10000 - 1;
 	else
