@@ -404,6 +404,151 @@ void LCD_PutChar(char character)
 }
 
 
+/*******************************************************************************
+*  Function Name: LCD_PrintInt8
+********************************************************************************
+*
+* Summary:
+*  Print a byte as two ASCII characters.
+*
+* Parameters:
+*  value: The byte to be printed out as ASCII characters.
+*
+* Return:
+*  None.
+*
+*******************************************************************************/
+void LCD_PrintInt8(uint8_t value)
+{
+    static char const LCD_hex[16u] = "0123456789ABCDEF";
+
+    LCD_PutChar((char) LCD_hex[value >> LCD_BYTE_UPPER_NIBBLE_SHIFT]);
+    LCD_PutChar((char) LCD_hex[value & LCD_BYTE_LOWER_NIBBLE_MASK]);
+}
+
+
+/*******************************************************************************
+*  Function Name: LCD_PrintInt16
+********************************************************************************
+*
+* Summary:
+*  Print a uint16 as four ASCII characters.
+*
+* Parameters:
+*  value: The uint16 to be printed out as ASCII characters.
+*
+* Return:
+*  None.
+*
+*******************************************************************************/
+void LCD_PrintInt16(uint16_t value)
+{
+    LCD_PrintInt8((uint8_t)(value >> LCD_U16_UPPER_BYTE_SHIFT));
+    LCD_PrintInt8((uint8_t)(value & LCD_U16_LOWER_BYTE_MASK));
+}
+
+
+/*******************************************************************************
+*  Function Name: LCD_PrintInt32
+********************************************************************************
+*
+* Summary:
+*  Print a uint32 hexadecimal number as eight ASCII characters.
+*
+* Parameters:
+*  value: The uint32 to be printed out as ASCII characters.
+*
+* Return:
+*  None.
+*
+*******************************************************************************/
+void LCD_PrintInt32(uint32_t value)
+{
+    uint8_t shift = LCD_32_BIT_SHIFT;
+
+    while (shift != 0u)
+    {
+        /* "shift" var is to be subtracted by 8 prior shifting. This implements
+        * shifting by 24, 16, 8 and 0u.
+        */
+        shift -= LCD_8_BIT_SHIFT;
+
+        /* Print 8 bits of uint32 hex number */
+        LCD_PrintInt8((uint8_t) ((uint32_t) (value >> shift)));
+    }
+}
+
+
+/*******************************************************************************
+*  Function Name: LCD_PrintNumber
+********************************************************************************
+*
+* Summary:
+*  Print an uint16 value as a left-justified decimal value.
+*
+* Parameters:
+*  value: A 16-bit value to be printed in ASCII characters as a decimal number
+*
+* Return:
+*  None.
+*
+* Note:
+*  This function is implemented as a macro.
+*
+*******************************************************************************/
+
+
+/*******************************************************************************
+*  Function Name: LCD_PrintU32Number
+********************************************************************************
+*
+* Summary:
+*  Print an uint32 value as a left-justified decimal value.
+*
+* Parameters:
+*  value: A 32-bit value to be printed in ASCII characters as a decimal number
+*
+* Return:
+*  None.
+*
+*******************************************************************************/
+void LCD_PrintU32Number(uint32_t value)
+{
+    uint8_t tmpDigit;
+    char number[LCD_NUMBER_OF_REMAINDERS_U32 + 1u];
+    uint8_t digIndex = LCD_NUMBER_OF_REMAINDERS_U32;
+
+    /* This API will output a decimal number as a string and that string will be
+    * filled from end to start. Set Null termination character first.
+    */
+    number[digIndex] = (char) '\0';
+    digIndex--;
+
+    /* Load these in reverse order */
+    while(value >= LCD_TEN)
+    {
+        /* Extract decimal digit, indexed by 'digIndex', from 'value' and
+        * convert it to ASCII character.
+        */
+        tmpDigit = (uint8_t) (((uint8_t) (value % LCD_TEN)) + (uint8_t) LCD_ZERO_CHAR_ASCII);
+
+        /* Temporary variable 'tmpDigit' is used to avoid Violation of MISRA rule
+        * #10.3.
+        */
+        number[digIndex] = (char) tmpDigit;
+        value /= LCD_TEN;
+        digIndex--;
+    }
+
+    /* Extract last decimal digit 'digIndex', from the 'value' and convert it
+    * to ASCII character.
+    */
+    tmpDigit = (uint8_t) (((uint8_t)(value % LCD_TEN)) + (uint8_t) LCD_ZERO_CHAR_ASCII);
+    number[digIndex] = (char) tmpDigit;
+
+    /* Print out number */
+    LCD_PrintString(&number[digIndex]);
+}
 
 
 

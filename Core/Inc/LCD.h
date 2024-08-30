@@ -48,7 +48,7 @@ void LCD_PrintU32Number(uint32_t value) ;
 /* On Macro */
 #define LCD_DisplayOn() LCD_WriteControl(LCD_DISPLAY_ON_CURSOR_OFF)
 
-#define LCD_PrintNumber(value) LCD_PrintU32Number((uint16) (value))
+#define LCD_PrintNumber(value) LCD_PrintU32Number((uint16_t) (value))
 
 /***************************************
 *           API Constants
@@ -102,6 +102,19 @@ void LCD_PrintU32Number(uint32_t value) ;
 #else
     #define LCD_PORT_SHIFT               (0x01u)
 #endif /* (0 == LCD_LCDPort__SHIFT) */
+
+/* Other constants */
+#define LCD_BYTE_UPPER_NIBBLE_SHIFT  (0x04u)
+#define LCD_BYTE_LOWER_NIBBLE_MASK   (0x0Fu)
+#define LCD_U16_UPPER_BYTE_SHIFT     (0x08u)
+#define LCD_U16_LOWER_BYTE_MASK      (0xFFu)
+#define LCD_CUSTOM_CHAR_SET_LEN      (0x40u)
+
+#define LCD_NUMBER_OF_REMAINDERS_U32 (0x0Au)
+#define LCD_TEN                      (0x0Au)
+#define LCD_8_BIT_SHIFT              (8u)
+#define LCD_32_BIT_SHIFT             (32u)
+#define LCD_ZERO_CHAR_ASCII          (48u)
 
 
 #endif /* INC_LCD_H_ */

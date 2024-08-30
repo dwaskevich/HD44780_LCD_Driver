@@ -102,9 +102,9 @@ int main(void)
   LCD_Start();
   HAL_Delay(20);
   LCD_Position(0, 0);
-  LCD_PrintString("hello world");
+  LCD_PrintString("LCD LL driver");
   LCD_Position(1, 0);
-  LCD_PrintString("ok, wow, working");
+  LCD_PrintString("Adapted from CY");
 
   /* USER CODE END 2 */
 
