@@ -2,7 +2,31 @@
  * LCD.c
  *
  *  Created on: Aug 25, 2024
- *      Author: dwask
+ *      Author: David Waskevich
+ *
+ *  Description: Hitachi HD44780-based LCD driver/library
+ *
+ *  			 Note - adapted/ported from Cypress PSoC Creator v2.20 LCD component
+ *
+ *  Hardware:	Tested on IAR-STM32-SK Kickstart Kit (STM32F103RBTx) with 2-line
+ *  			40-character LCD module.
+ *
+ *  IDE:        STM32CubeIDE Version 1.16.0
+ *
+ *  GPIO:		Low level driver - STM32F1xx_LL_Driver (CubeMX Advanced Settings)
+ *
+ *	Wiring:		4-bit nibble-mode parallel data bus to display (upper nibble):
+ *				DB[7:4]					- GPIOC[3:0]
+ *              RS (Register Select) 	- GPIOC_8 (0 = command, 1 = data)
+ *              R/nW (Read/~Write)		- GPIOC_9
+ *              E (Clock Enable)		- GPIOC_12 (falling edge triggered)
+ *              Backlight				- GPIOB_0 (1 = ON, 0 = OFF)
+ *
+ * Update 30-Aug-2024:
+ *		- implemented busy polling
+ *			-> Note - 2-line test message with busy polling measured 1.95ms on Saleae
+ *				Logic Analyzer. Hardware delay of 100us worked, message time = 3ms
+ *
  */
 #include "main.h"
 #include "LCD.h"
@@ -153,8 +177,8 @@ void LCD_WriteData(uint8_t dByte)
 {
     uint8_t nibble;
 
-//    LCD_IsReady();
-    delay_us(1000);
+    LCD_IsReady();
+//    delay_us(100);
 
     nibble = dByte >> LCD_NIBBLE_SHIFT;
 
@@ -185,8 +209,8 @@ void LCD_WriteControl(uint8_t cByte)
 {
     uint8_t nibble;
 
-//    LCD_IsReady();
-    delay_us(1000);
+    LCD_IsReady();
+//    delay_us(100);
 
     nibble = cByte >> LCD_NIBBLE_SHIFT;
 
@@ -521,5 +545,104 @@ void LCD_PrintU32Number(uint32_t value)
     LCD_PrintString(&number[digIndex]);
 }
 
+/*******************************************************************************
+* Function Name: LCD_IsReady
+********************************************************************************
+*
+* Summary:
+*  Polls the LCD until the ready bit is set or a timeout occurs.
+*
+* Parameters:
+*  None.
+*
+* Return:
+*  None.
+*
+* Note:
+*  Changes the pins to High-Z.
+*
+*******************************************************************************/
+void LCD_IsReady(void)
+{
+	uint16_t gpioPortData;
+	uint8_t value;
+    uint32_t timeout;
+    timeout = LCD_READY_DELAY;
 
+    /* Clear LCD port */
+	gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
+	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
+	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
+
+	/* Change port to input on data pins */
+	LL_GPIO_SetPinMode(DB4_GPIO_Port, DB4_Pin, LL_GPIO_MODE_FLOATING);
+	LL_GPIO_SetPinMode(DB5_GPIO_Port, DB5_Pin, LL_GPIO_MODE_FLOATING);
+	LL_GPIO_SetPinMode(DB6_GPIO_Port, DB6_Pin, LL_GPIO_MODE_FLOATING);
+	LL_GPIO_SetPinMode(DB7_GPIO_Port, DB7_Pin, LL_GPIO_MODE_FLOATING);
+
+	/* Make sure RS is low */
+	LL_GPIO_ResetOutputPin(RS_GPIO_Port, RS_Pin);
+
+	/* Set R/W high to read */
+	LL_GPIO_SetOutputPin(RnW_GPIO_Port, RnW_Pin);
+
+    do
+    {
+        /* 40 ns delay required before rising Enable and 500ns between neighbour Enables */
+        delay_us(0u);
+
+        /* Set E high */
+        LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
+
+        /* 360 ns delay setup time for data pins */
+        delay_us(1u);
+
+        /* Get port state */
+        value = LL_GPIO_ReadInputPort(DB4_GPIO_Port);
+
+        /* Set enable low */
+        LL_GPIO_ResetOutputPin(E_GPIO_Port, E_Pin);
+
+        /* This gives true delay between disabling Enable bit and polling Ready bit */
+        delay_us(0u);
+
+        /* Extract ready bit */
+        value &= LCD_READY_BIT;
+
+        /* Set E high, 4-bit interface mode needs extra operation */
+        LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
+
+        /* 360 ns delay setup time for data pins */
+        delay_us(1u);
+
+        /* Set enable low */
+        LL_GPIO_ResetOutputPin(E_GPIO_Port, E_Pin);
+
+        /* If LCD is not ready make a delay */
+        if (value == 0u)
+        {
+        	delay_us(10u);
+        }
+
+        /* Repeat until bit 4 is not zero or until timeout. */
+        timeout--;
+
+    } while ((value != 0u) && (timeout > 0u));
+
+    /* Set R/W low to write */
+    LL_GPIO_ResetOutputPin(RnW_GPIO_Port, RnW_Pin);
+
+    /* Clear LCD port*/
+	gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
+	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
+	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
+
+	/* Change Port to Output (Strong) on data pins */
+	LL_GPIO_SetPinMode(DB4_GPIO_Port, DB4_Pin, LL_GPIO_MODE_OUTPUT);
+	LL_GPIO_SetPinMode(DB5_GPIO_Port, DB5_Pin, LL_GPIO_MODE_OUTPUT);
+	LL_GPIO_SetPinMode(DB6_GPIO_Port, DB6_Pin, LL_GPIO_MODE_OUTPUT);
+	LL_GPIO_SetPinMode(DB7_GPIO_Port, DB7_Pin, LL_GPIO_MODE_OUTPUT);
+	LL_GPIO_SetPinOutputType(DB4_GPIO_Port, DB4_Pin | DB5_Pin | DB6_Pin | DB7_Pin, LL_GPIO_OUTPUT_PUSHPULL);
+
+}
 

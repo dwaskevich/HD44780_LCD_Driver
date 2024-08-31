@@ -2,7 +2,7 @@
  * LCD.h
  *
  *  Created on: Aug 25, 2024
- *      Author: dwask
+ *      Author: David Waskevich
  */
 
 #ifndef INC_LCD_H_
@@ -115,6 +115,12 @@ void LCD_PrintU32Number(uint32_t value) ;
 #define LCD_8_BIT_SHIFT              (8u)
 #define LCD_32_BIT_SHIFT             (32u)
 #define LCD_ZERO_CHAR_ASCII          (48u)
+
+#define LCD_LONGEST_CMD_US           (0x651u)
+#define LCD_WAIT_CYCLE               (0x10u)
+#define LCD_READY_DELAY              ((LCD_LONGEST_CMD_US * 4u)/(LCD_WAIT_CYCLE))
+
+#define LCD_READY_BIT				 (0x08u)
 
 
 #endif /* INC_LCD_H_ */

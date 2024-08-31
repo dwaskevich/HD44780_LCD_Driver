@@ -99,9 +99,16 @@ int main(void)
   LCD_Start();
   HAL_Delay(20);
   LCD_Position(0, 0);
-  LCD_PrintString("LCD LL driver");
+  LCD_PrintString("HD44780 LCD");
   LCD_Position(1, 0);
-  LCD_PrintString("Adapted from CY");
+  LCD_PrintString("LL GPIO driver");
+
+  HAL_Delay(5000);
+
+//  LCD_Position(1, 0);
+//  LCD_PrintString("Cnt            ");
+
+  uint32_t count = 0;
 
   /* USER CODE END 2 */
 
@@ -110,6 +117,13 @@ int main(void)
   while (1)
   {
 	  LL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+	  if(0 == count)
+	  {
+		  LCD_Position(1, 0);
+		  LCD_PrintString("Cnt            ");
+	  }
+	  LCD_Position(1, 4);
+	  LCD_PrintU32Number(count++);
 	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
