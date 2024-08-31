@@ -105,9 +105,6 @@ int main(void)
 
   HAL_Delay(5000);
 
-//  LCD_Position(1, 0);
-//  LCD_PrintString("Cnt            ");
-
   uint32_t count = 0;
 
   /* USER CODE END 2 */
@@ -125,6 +122,7 @@ int main(void)
 	  LCD_Position(1, 4);
 	  LCD_PrintU32Number(count++);
 	  HAL_Delay(500);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
