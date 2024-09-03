@@ -1,14 +1,14 @@
 /*
  * LCD.c
  *
- *  Created on: Aug 25, 2024
+ *  Created on: Sept 2, 2024
  *      Author: David Waskevich
  *
  *  Description: Hitachi HD44780-based LCD driver/library
  *
  *  			 Note - adapted/ported from Cypress PSoC Creator v2.20 LCD component
  *
- *  Hardware:	Tested on IAR-STM32-SK Kickstart Kit (STM32F103RBTx) with 2-line
+ *  Hardware:	Tested on STM32 Blue Pill (STM32F103C8T6) with 1602-style 2-line
  *  			40-character LCD module.
  *
  *  IDE:        STM32CubeIDE Version 1.16.0
@@ -16,16 +16,17 @@
  *  GPIO:		Low level driver - STM32F1xx_LL_Driver (CubeMX Advanced Settings)
  *
  *	Wiring:		4-bit nibble-mode parallel data bus to display (upper nibble):
- *				DB[7:4]					- GPIOC[3:0]
- *              RS (Register Select) 	- GPIOC_8 (0 = command, 1 = data)
- *              R/nW (Read/~Write)		- GPIOC_9
- *              E (Clock Enable)		- GPIOC_12 (falling edge triggered)
- *              Backlight				- GPIOB_0 (1 = ON, 0 = OFF)
+ *				DB[7:4]					- GPIOB[15:12]
+ *              RS (Register Select) 	- GPIOB_5 (0 = command, 1 = data)
+ *              R/nW (Read/~Write)		- GPIOB_4
+ *              E (Clock Enable)		- GPIOB_3 (falling edge triggered)
+ *              Backlight				- GPIOA_15 (1 = ON, 0 = OFF)
  *
- * Update 30-Aug-2024:
- *		- implemented busy polling
- *			-> Note - 2-line test message with busy polling measured 1.95ms on Saleae
- *				Logic Analyzer. Hardware delay of 100us worked, message time = 3ms
+ *  Update 2-Sept-2024:
+ *		- added #defines for LCD_STM32_NIBBLE_SHIFT and LCD_STM32_NIBBLE_MASK to accommodate
+ *		  16-bit GPIO ports on STM32F103
+ *		- modified LCD_WrDatNib, LCD_WrCntrlNib and LCD_IsReady to use the shift and mask values
+ *
  *
  */
 #include "main.h"
@@ -253,8 +254,8 @@ static void LCD_WrDatNib(uint8_t nibble)
 
     /* Clear data pins, write nibble data */
 	gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
-	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
-	gpioPortData |= (uint16_t) (nibble & LCD_NIBBLE_MASK);
+	gpioPortData &= ~(uint16_t) LCD_STM32_NIBBLE_MASK;
+	gpioPortData |= (((uint16_t) nibble << LCD_STM32_NIBBLE_SHIFT) & LCD_STM32_NIBBLE_MASK);
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
     /* , bring E high */
@@ -292,8 +293,8 @@ static void LCD_WrCntrlNib(uint8_t nibble)
     /* Two following lines of code will give 40ns delay */
     /* Clear data pins */
     gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
-	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
-	gpioPortData |= (uint16_t) (nibble & LCD_NIBBLE_MASK);
+	gpioPortData &= ~(uint16_t) LCD_STM32_NIBBLE_MASK;
+	gpioPortData |= (((uint16_t) nibble << LCD_STM32_NIBBLE_SHIFT) & LCD_STM32_NIBBLE_MASK);
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
     /* Write control data and set enable signal */
@@ -565,13 +566,13 @@ void LCD_PrintU32Number(uint32_t value)
 void LCD_IsReady(void)
 {
 	uint16_t gpioPortData;
-	uint8_t value;
+	uint16_t value;
     uint32_t timeout;
     timeout = LCD_READY_DELAY;
 
     /* Clear LCD port */
 	gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
-	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
+	gpioPortData &= ~(uint16_t) LCD_STM32_NIBBLE_MASK;
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
 	/* Change port to input on data pins */
@@ -607,7 +608,7 @@ void LCD_IsReady(void)
         delay_us(0u);
 
         /* Extract ready bit */
-        value &= LCD_READY_BIT;
+        value &= (LCD_READY_BIT << LCD_STM32_NIBBLE_SHIFT);
 
         /* Set E high, 4-bit interface mode needs extra operation */
         LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
@@ -634,7 +635,7 @@ void LCD_IsReady(void)
 
     /* Clear LCD port*/
 	gpioPortData = (uint16_t) LL_GPIO_ReadOutputPort(DB4_GPIO_Port);
-	gpioPortData &= ~(uint16_t) LCD_NIBBLE_MASK;
+	gpioPortData &= ~(uint16_t) LCD_STM32_NIBBLE_MASK;
 	LL_GPIO_WriteOutputPort(DB4_GPIO_Port, (uint32_t) gpioPortData);
 
 	/* Change Port to Output (Strong) on data pins */

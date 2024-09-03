@@ -1,42 +1,23 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "LCD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -46,8 +27,9 @@ TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart1;
 
-/* USER CODE BEGIN PV */
+uint8_t rxData;
 
+/* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,12 +39,11 @@ static void MX_I2C1_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void delay_us(uint16_t delay);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -73,7 +54,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -82,14 +62,12 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -97,7 +75,25 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM4_Init();
   MX_USART1_UART_Init();
+
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart1, &rxData, 1); /* start UART in interrupt mode */
+  HAL_UART_Transmit(&huart1, (uint8_t *) "\x1b[2J\x1b[;HUART started\r\n", sizeof("\x1b[2J\x1b[;HUART started\r\n"), 500);
+
+  HAL_TIM_Base_Start(&htim4);
+
+  LL_GPIO_SetOutputPin(Light_LCD_GPIO_Port, Light_LCD_Pin);
+
+  LCD_Start();
+  HAL_Delay(20);
+  LCD_Position(0, 0);
+  LCD_PrintString("HD44780 LCD");
+  LCD_Position(1, 0);
+  LCD_PrintString("LL GPIO driver");
+
+  HAL_Delay(5000);
+
+  uint32_t count = 0;
 
   /* USER CODE END 2 */
 
@@ -105,6 +101,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  LL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+	  if(0 == count)
+	  {
+		  LCD_Position(1, 0);
+		  LCD_PrintString("Cnt            ");
+	  }
+	  LCD_Position(1, 4);
+	  LCD_PrintU32Number(count++);
+	  HAL_Delay(500);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -160,11 +166,9 @@ static void MX_I2C1_Init(void)
 {
 
   /* USER CODE BEGIN I2C1_Init 0 */
-
   /* USER CODE END I2C1_Init 0 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
-
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
@@ -180,7 +184,6 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C1_Init 2 */
-
   /* USER CODE END I2C1_Init 2 */
 
 }
@@ -194,14 +197,12 @@ static void MX_TIM4_Init(void)
 {
 
   /* USER CODE BEGIN TIM4_Init 0 */
-
   /* USER CODE END TIM4_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
   /* USER CODE BEGIN TIM4_Init 1 */
-
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 18-1;
@@ -225,7 +226,6 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM4_Init 2 */
-
   /* USER CODE END TIM4_Init 2 */
 
 }
@@ -239,11 +239,9 @@ static void MX_USART1_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART1_Init 0 */
-
   /* USER CODE END USART1_Init 0 */
 
   /* USER CODE BEGIN USART1_Init 1 */
-
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
@@ -258,7 +256,6 @@ static void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -317,6 +314,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void delay_us(uint16_t delay)
+{
+	if(delay < 1)
+		delay = 0;
+	else if(delay > 0x10000 / 4)
+		delay = 0x10000 - 1;
+	else
+		delay = (delay * 4) - 1;
+	__HAL_TIM_SetCounter(&htim4, 0);
+	while(__HAL_TIM_GetCounter(&htim4) < delay);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	HAL_UART_Transmit(&huart1, &rxData, 1, 100); /* echo character */
+    HAL_UART_Receive_IT(&huart1, &rxData, 1); /* restart UART Rx interrupt */
+}
 
 /* USER CODE END 4 */
 
@@ -327,11 +341,6 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -346,8 +355,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

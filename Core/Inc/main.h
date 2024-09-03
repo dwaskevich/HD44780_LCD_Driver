@@ -62,7 +62,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+extern void delay_us(uint16_t delay);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
