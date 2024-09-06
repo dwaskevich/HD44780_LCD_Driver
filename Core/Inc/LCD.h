@@ -79,6 +79,11 @@ void LCD_PrintU32Number(uint32_t value) ;
 #define LCD_NIBBLE_SHIFT             (0x04u)
 #define LCD_NIBBLE_MASK              (0x0Fu)
 
+/* STM32 16-bit GPIO port defines (shift and mask) for DB4-DB7 */
+/* for IAR KickStart kit pinout ... DB4 : DB7 = LL_GPIO_PIN_0 : LL_GPIO_PIN_3 */
+#define LCD_STM32_NIBBLE_SHIFT		 (0u)
+#define LCD_STM32_NIBBLE_MASK        (0x000Fu)
+
 /* LCD Module Address Constants */
 #define LCD_ROW_0_START              (0x80u)
 #define LCD_ROW_1_START              (0xC0u)

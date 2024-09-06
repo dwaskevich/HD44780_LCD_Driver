@@ -274,13 +274,13 @@ static void MX_GPIO_Init(void)
 void delay_us(uint16_t delay)
 {
 	if(delay < 1)
-		delay = 0;
-	else if(delay > 0x10000 / 4)
-		delay = 0x10000 - 1;
+		delay = 0; /* yields minimum delay */
+	else if(delay > 0x10000 / 4) /* TIM4 is a 16-bit counter, argument will be multiplied by 4 later */
+		delay = 0x10000 - 1; /* maximum delay = 18/72 MHz * 16,384 = 4096 us */
 	else
-		delay = (delay * 4) - 1;
-	__HAL_TIM_SetCounter(&htim4, 0);
-	while(__HAL_TIM_GetCounter(&htim4) < delay);
+		delay = (delay * 4) - 1; /* TIM4 configured for 4 MHz */
+	__HAL_TIM_SetCounter(&htim4, 0); /* reset counter to zero */
+	while(__HAL_TIM_GetCounter(&htim4) < delay); /* wait for delay */
 }
 
 /* USER CODE END 4 */
