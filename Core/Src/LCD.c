@@ -1,12 +1,12 @@
 /*
- * LCD.c
+ *  LCD.c
  *
  *  Created on: Sept 2, 2024
  *      Author: David Waskevich
  *
- *  Description: Hitachi HD44780-based LCD driver/library
+ * Description: Hitachi HD44780-based LCD driver/library
  *
- *  			 Note - adapted/ported from Cypress PSoC Creator v2.20 LCD component
+ *  			Note - adapted/ported from Cypress PSoC Creator v2.20 LCD component
  *
  *  Hardware:	Tested on STM32 Blue Pill (STM32F103C8T6) with 1602-style 2-line
  *  			40-character LCD module.
@@ -18,9 +18,25 @@
  *	Wiring:		4-bit nibble-mode parallel data bus to display (upper nibble):
  *				DB[7:4]					- GPIOB[15:12]
  *              RS (Register Select) 	- GPIOB_5 (0 = command, 1 = data)
- *              R/nW (Read/~Write)		- GPIOB_4
+ *              R/nW (Read/~Write)		- GPIOB_4 (0 = write, 1 = read)
  *              E (Clock Enable)		- GPIOB_3 (falling edge triggered)
  *              Backlight				- GPIOA_15 (1 = ON, 0 = OFF)
+ *
+ *  Usage:      - #include "LCD.h" in main.c
+ *  			- Enable/select STM32CubeIDE GPIO low level drivers in CubeMX advanced
+ *  				settings (HAL library does not support full GPIO port read or write)
+ *  			- LCD data lines (DB4-DB7) must be assigned to contiguous pins in the
+ *  				same GPIO port.
+ *  				'-> LCD_STM32_NIBBLE_SHIFT and LCD_STM32_NIBBLE_MASK should be defined
+ *  					 in LCD.h according to DB4-DB7 GPIO assignment (shift 0 - 12).
+ *  			- LCD control lines (RS, R/W, E ad BackLight) can be assigned to any
+ *  				available/convenient GPIO pins (HAL functions are used to control
+ *  				these pins).
+ *  			- A hardware-based microsecond delay function is needed (HAL library
+ *  				only offers millisecond delay):
+ *  				'-> see "extern void delay_us(uint16_t delay);" declaration in main.h
+ *  					and implementation in main.c (TIM4 configured in CubeMX)
+ *  			- External transistor/FET required to drive LCD backlight (LED requires 50 mA)
  *
  *  Update 2-Sept-2024:
  *		- added #defines for LCD_STM32_NIBBLE_SHIFT and LCD_STM32_NIBBLE_MASK to accommodate
@@ -608,7 +624,7 @@ void LCD_IsReady(void)
         delay_us(0u);
 
         /* Extract ready bit */
-        value &= (LCD_READY_BIT << LCD_STM32_NIBBLE_SHIFT);
+        value &= ((uint16_t)LCD_READY_BIT << LCD_STM32_NIBBLE_SHIFT);
 
         /* Set E high, 4-bit interface mode needs extra operation */
         LL_GPIO_SetOutputPin(E_GPIO_Port, E_Pin);
